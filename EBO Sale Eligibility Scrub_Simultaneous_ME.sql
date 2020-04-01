@@ -3,6 +3,8 @@ Msg 4104, Level 16, State 1, Line 157
 The multi-part identifier "lmme.LoanId" could not be bound.
 
 CODE UPDATES:
+20200401:
+	+ Fixed eligibility flag for balance sheet loans >=30+ DLQ
 20200123:
 	+ PENDING - ADDING SCRUB FOR: NA Housing and VA Refis as part of the scrub
 20200122:
@@ -22,9 +24,14 @@ SET @DateKey = (select CONVERT(varchar,dateadd(d,-(day(getdate())),getdate()),11
 Declare @Cutoff_1stofMonth date
 SET @Cutoff_1stofMonth = (select CONVERT(date,dateadd(d,-(day(getdate())) + 1,getdate()),112))
 
---Set minimum Next Due Date assuming a cutoff of this month (for 90 dlq)
+--Set minimum Next Due Date assuming a cutoff of this month (for 90 dlq GN MBS)
 Declare @Cutoff_NPDD date --for eligibility cutoff first of the current month
 SET @Cutoff_NPDD = DATEADD(MONTH, -3, @Cutoff_1stofMonth)
+
+--Set minimum Next Due Date assuming a cutoff of this month (for 30 dlq Balance Sheet loans)
+Declare @Cutoff_NPDD_BS date --for eligibility cutoff first of the current month
+SET @Cutoff_NPDD_BS = DATEADD(MONTH, -1, @Cutoff_1stofMonth)
+
 
 --This section calculates FC Sale data cutoff as 2 months prior at 1st of month
 Declare @Cutoff_1stOfMonth_Prev3Months date
@@ -187,10 +194,10 @@ Where
 
 -------------------------------------------------------------- Insert LoanIds here --------------------------------------------------------------------------
 --LM.Loanid in ()
-LM.DelinquentStatusCodeId in ('2','3','4','F')
+((LM.DelinquentStatusCodeId in ('2','3','4','F') and LM.InvestorId between '400' and '498') or (LM.DelinquentStatusCodeId in ('1','2','3','4','F') and LM.InvestorId in ('025','027')) )
 and LM.LoanStatusId in ('2','3','4','F')
 and LM.InvestorId between '400' and '498' or LM.InvestorId in ('025','027')
-and LM.CurrentPrincipalBalanceAmt > 0
+and LM.CurrentPrincipalBalanceAmt > 0.01
 and LM.LoTypeId in (1,2,9))
 
 --Apply loan level scrubs including Collateral from Contract Finance
@@ -219,6 +226,7 @@ LoanId
 ,DelinquentStatusCodeId
 ,DelinquentPaymentCount
 ,PayoffStopCodeId
+,NextPaymentDueDt
 ,PropertyState
 ,Age
 ,case
@@ -245,9 +253,13 @@ LoanId
 	when SaleDt is not null then 'FCSale'
 	when ScheduledSaleDt>=@Cutoff_1stOfMonth_Prev3Months then 'FCSale'
 	--when DelinquentStatusCodeId in ('P','A','B','C','D','1','2') then '< 90 DAYS DQ'
-	when NextPaymentDueDt > @Cutoff_NPDD then '<90 Days DQ'
+	WHEN NextPaymentDueDt > @Cutoff_NPDD THEN CASE
+												WHEN (InvestorId between '400' and '498') then '<90 Days DQ - GNMA'
+												WHEN (InvestorId in ('025','027')) AND (NextPaymentDueDt > @Cutoff_NPDD_BS) then '<30 Days DQ - Balance Sheet'
+												ELSE ''
+											END
 	else ''	
-	end as EligibilityScrub
+end as EligibilityScrub
 ,MEPeriod
 ,DateKey
 ,Next_Due_Date_Cutoff
