@@ -67,6 +67,7 @@ end as 'ModStage'
 ,LM.InvestorId
 ,LM.DelinquentStatusCodeId
 ,LM.DelinquentPaymentCount
+,LM.NextPaymentDueDt
 ,LM.PayoffStopCodeId
 ,COM.ReasonCode
 ,BM.BorrowerOneConsumerInfoCodeId
@@ -151,9 +152,10 @@ on LM.LoanId = BM.LoanId
 Where 
 
 -------------------------------------------------------------- Insert LoanIds here --------------------------------------------------------------------------
-LM.DelinquentStatusCodeId in ('2','3','4','F')
-and LM.LoanStatusId in ('2','3','4','F')
-and LM.InvestorId between '400' and '498' or LM.InvestorId in ('025','027')
+--LM.Loanid in ()
+((LM.DelinquentStatusCodeId in ('2','3','4','F') and LM.InvestorId between '400' and '498') or (LM.DelinquentStatusCodeId in ('1','2','3','4','F') and LM.InvestorId in ('025','027')) )
+--and LM.LoanStatusId in ('2','3','4','F')
+--and LM.InvestorId between '400' and '498' or LM.InvestorId in ('025','027')
 and LM.CurrentPrincipalBalanceAmt > 0.01
 and LM.LoTypeId in (1,2,9)) 
 
@@ -190,6 +192,7 @@ LoanId
 ,InvestorId
 ,DelinquentStatusCodeId
 ,DelinquentPaymentCount
+,NextPaymentDueDt
 ,PayoffStopCodeId
 ,PropertyState
 ,Age
