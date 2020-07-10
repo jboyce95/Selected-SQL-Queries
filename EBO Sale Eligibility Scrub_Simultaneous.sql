@@ -67,6 +67,7 @@ end as 'ModStage'
 ,LM.InvestorId
 ,LM.DelinquentStatusCodeId
 ,LM.DelinquentPaymentCount
+,LM.InterestPaidToDt
 ,LM.NextPaymentDueDt
 ,LM.PayoffStopCodeId
 ,COM.ReasonCode
@@ -80,8 +81,19 @@ end as 'ModStage'
 ,@Cutoff_1stOfMonth_Prev2Months as Cutoff_1stOfMonth_Prev2Months
 ,varf.OriginalLoanToValueRatio
 ,varf.Loanpurposecodeid
+--,CASE
+--	WHEN lm.FirstServiceFeeRt >= 0.0025 THEN (floor(200*(LM.CurrentInterestRate - lm.FirstServiceFeeRt/2)))/200 --testing
+--	ELSE (floor(200*(LM.CurrentInterestRate - 0.0025)))/200
+--END AS [PT at Buyout]
+
+--,CASE
+--	WHEN lm.FirstServiceFeeRt >= 0.0025 THEN LM.CurrentInterestRate  - (floor(200*(LM.CurrentInterestRate - lm.FirstServiceFeeRt/2)))/200
+--	ELSE LM.CurrentInterestRate - (floor(200*(LM.CurrentInterestRate - 0.0025)))/200
+--END AS [Svcg Fee at Buyout]
+
+
 ,CASE
-	WHEN lm.FirstServiceFeeRt >= 0.0025 THEN (floor(200*(LM.CurrentInterestRate - lm.FirstServiceFeeRt/2)))/200
+	WHEN lm.FirstServiceFeeRt >= 0.0025 THEN (floor(200*(LM.CurrentInterestRate - lm.FirstServiceFeeRt/2)))/200 --testing
 	ELSE (floor(200*(LM.CurrentInterestRate - 0.0025)))/200
 END AS [PT at Buyout]
 
@@ -89,6 +101,7 @@ END AS [PT at Buyout]
 	WHEN lm.FirstServiceFeeRt >= 0.0025 THEN LM.CurrentInterestRate  - (floor(200*(LM.CurrentInterestRate - lm.FirstServiceFeeRt/2)))/200
 	ELSE LM.CurrentInterestRate - (floor(200*(LM.CurrentInterestRate - 0.0025)))/200
 END AS [Svcg Fee at Buyout]
+
 
 ,CASE
 	WHEN lm.investorid BETWEEN '400' AND '498' THEN 'GNMA'
@@ -192,6 +205,7 @@ LoanId
 ,InvestorId
 ,DelinquentStatusCodeId
 ,DelinquentPaymentCount
+,InterestPaidToDt
 ,NextPaymentDueDt
 ,PayoffStopCodeId
 ,PropertyState
